@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Letter For You 💌</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --rose: #c0392b;
+    --rose-light: #e74c3c;
+    --rose-pale: #f9d0cc;
+    --gold: #d4a017;
+    --gold-light: #f0c040;
+    --cream: #fdf6ec;
+    --parchment: #f5e6c8;
+    --ink: #2c1810;
+    --ink-soft: #5a3a2a;
+  }
+
+  body {
+    min-height: 100vh;
+    background: #0d0508;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ── Starfield bg ── */
+  #stars-canvas {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Floating particles ── */
+  .particle {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    animation: floatParticle var(--dur) var(--delay) infinite ease-in-out;
+  }
+  @keyframes floatParticle {
+    0%   { transform: translate(0,0) scale(0.6) rotate(0deg); opacity: 0; }
+    20%  { opacity: var(--op); }
+    80%  { opacity: var(--op); }
+    100% { transform: translate(var(--tx), var(--ty)) scale(1.1) rotate(var(--rot)); opacity: 0; }
+  }
+
+  /* ── Scene wrapper ── */
+  .scene {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+  }
+
+  /* ── Envelope ── */
+  .envelope-wrap {
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+  .envelope-wrap:hover { transform: translateY(-6px) scale(1.02); }
+
+  .envelope {
+    width: 300px;
+    height: 200px;
+    background: linear-gradient(145deg, #b8860b 0%, #d4a017 40%, #e8c050 70%, #d4a017 100%);
+    border-radius: 8px;
+    position: relative;
+    box-shadow:
+      0 0 40px #d4a01788,
+      0 0 80px #d4a01744,
+      0 20px 60px #00000088,
+      inset 0 1px 0 #f0d06044;
+    overflow: hidden;
+  }
+
+  .envelope::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.03) 8px, rgba(255,255,255,0.03) 9px);
+  }
+
+  /* side triangles */
+  .env-left, .env-right, .env-bottom {
+    position: absolute;
+    bottom: 0;
+    width: 0; height: 0;
+    border-style: solid;
+  }
+  .env-left {
+    left: 0;
+    border-width: 200px 0 0 150px;
+    border-color: transparent transparent transparent #c8950a;
+    filter: brightness(0.85);
+  }
+  .env-right {
+    right: 0;
+    border-width: 200px 150px 0 0;
+    border-color: transparent #c8950a transparent transparent;
+    filter: brightness(0.85);
+  }
+  .env-bottom {
+    left: 50%; transform: translateX(-50%);
+    border-width: 0 150px 110px 150px;
+    border-color: transparent transparent #b8800a transparent;
+    bottom: 0;
+  }
+
+  /* flap */
+  .env-flap {
+    position: absolute;
+    top: 0; left: 0;
+    width: 300px; height: 0;
+    border-left: 150px solid transparent;
+    border-right: 150px solid transparent;
+    border-top: 130px solid #e0aa20;
+    transform-origin: top center;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: brightness(1.1);
+    z-index: 5;
+  }
+  .envelope-wrap.opened .env-flap {
+    transform: rotateX(180deg);
+  }
+
+  /* wax seal */
+  .seal {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 52px; height: 52px;
+    background: radial-gradient(circle at 35% 35%, #e74c3c, #c0392b 50%, #8b0000);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 15px #e74c3c88, 0 0 30px #e74c3c44, 0 3px 10px #00000066;
+    z-index: 6;
+    transition: all 0.4s ease;
+    animation: sealPulse 2s ease-in-out infinite;
+  }
+  @keyframes sealPulse {
+    0%,100% { box-shadow: 0 0 15px #e74c3c88, 0 0 30px #e74c3c44; }
+    50%      { box-shadow: 0 0 25px #e74c3caa, 0 0 50px #e74c3c66; }
+  }
+  .envelope-wrap.opened .seal { opacity: 0; transform: translate(-50%,-50%) scale(0); }
+
+  /* ── Open button ── */
+  .open-btn {
+    background: transparent;
+    border: 1.5px solid var(--gold);
+    color: var(--gold-light);
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    letter-spacing: 0.2em;
+    padding: 0.75rem 2.5rem;
+    border-radius: 50px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    box-shadow: 0 0 20px #d4a01744, inset 0 0 20px transparent;
+    text-transform: uppercase;
+  }
+  .open-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, #d4a01722 0%, transparent 70%);
+    transform: scale(0);
+    transition: transform 0.5s ease;
+    border-radius: 50px;
+  }
+  .open-btn:hover {
+    box-shadow: 0 0 35px #d4a01799, inset 0 0 20px #d4a01722;
+    color: #fff;
+    border-color: var(--gold-light);
+  }
+  .open-btn:hover::before { transform: scale(1.5); }
+  .open-btn:active { transform: scale(0.97); }
+
+  /* ── Letter ── */
+  .letter-overlay {
+    position: fixed; inset: 0;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(5,0,3,0);
+    backdrop-filter: blur(0px);
+    pointer-events: none;
+    transition: background 0.8s ease, backdrop-filter 0.8s ease;
+    padding: 1rem;
+  }
+  .letter-overlay.visible {
+    background: rgba(5,0,3,0.85);
+    backdrop-filter: blur(6px);
+    pointer-events: all;
+  }
+
+  .letter {
+    width: min(520px, 95vw);
+    background: linear-gradient(160deg, #fdf8f0 0%, #f9edd5 40%, #fdf0e8 100%);
+    border-radius: 4px;
+    padding: 3rem 2.5rem 2.5rem;
+    position: relative;
+    box-shadow:
+      0 0 0 1px #d4a01744,
+      0 0 60px #d4a01766,
+      0 0 120px #c0392b44,
+      0 30px 80px #00000099;
+    transform: scale(0.5) translateY(80px) rotateX(15deg);
+    opacity: 0;
+    transition: transform 1s cubic-bezier(0.34,1.56,0.64,1), opacity 0.6s ease;
+    overflow: hidden;
+  }
+  .letter-overlay.visible .letter {
+    transform: scale(1) translateY(0) rotateX(0deg);
+    opacity: 1;
+  }
+
+  /* paper texture lines */
+  .letter::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 27px,
+      rgba(180,140,100,0.12) 27px,
+      rgba(180,140,100,0.12) 28px
+    );
+    pointer-events: none;
+  }
+
+  /* left margin line */
+  .letter::after {
+    content: '';
+    position: absolute;
+    left: 60px; top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(200,100,80,0.2);
+    pointer-events: none;
+  }
+
+  .letter-close {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: none; border: none;
+    color: var(--ink-soft);
+    font-size: 1.4rem;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    line-height: 1;
+    z-index: 5;
+  }
+  .letter-close:hover { opacity: 1; }
+
+  /* decorative top ornament */
+  .letter-ornament {
+    text-align: center;
+    margin-bottom: 1.2rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s 0.4s ease, transform 0.6s 0.4s ease;
+  }
+  .letter-overlay.visible .letter-ornament { opacity: 1; transform: translateY(0); }
+
+  .ornament-line {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    color: var(--gold);
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+  .ornament-line::before, .ornament-line::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    max-width: 80px;
+  }
+
+  /* date */
+  .letter-date {
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.05em;
+    margin-bottom: 1.2rem;
+    font-style: italic;
+    opacity: 0;
+    transition: opacity 0.6s 0.5s ease;
+  }
+  .letter-overlay.visible .letter-date { opacity: 1; }
+
+  .letter-salutation {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin-bottom: 1rem;
+    font-style: italic;
+    opacity: 0;
+    transform: translateX(-15px);
+    transition: opacity 0.6s 0.6s ease, transform 0.6s 0.6s ease;
+  }
+  .letter-overlay.visible .letter-salutation { opacity: 1; transform: translateX(0); }
+
+  .letter-body {
+    font-size: 1rem;
+    line-height: 1.9;
+    color: var(--ink-soft);
+    margin-bottom: 1.5rem;
+  }
+
+  .letter-body p {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+    margin-bottom: 0.8rem;
+  }
+  .letter-overlay.visible .letter-body p:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0.7s; }
+  .letter-overlay.visible .letter-body p:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.9s; }
+  .letter-overlay.visible .letter-body p:nth-child(3) { opacity: 1; transform: translateY(0); transition-delay: 1.1s; }
+
+  /* center piece */
+  .love-declaration {
+    text-align: center;
+    margin: 1.5rem 0;
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 0.8s 1.3s ease, transform 0.8s 1.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .letter-overlay.visible .love-declaration { opacity: 1; transform: scale(1); }
+
+  .love-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    font-style: italic;
+    background: linear-gradient(135deg, #c0392b, #e74c3c, #d4a017, #e74c3c, #c0392b);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
+    line-height: 1.2;
+    text-shadow: none;
+    display: block;
+  }
+  @keyframes shimmer {
+    0%   { background-position: 0% center; }
+    100% { background-position: 200% center; }
+  }
+
+  /* glowing heart */
+  .glow-heart {
+    display: inline-block;
+    font-size: 3rem;
+    animation: heartGlow 1.4s ease-in-out infinite;
+    margin: 0.5rem 0;
+    line-height: 1;
+  }
+  @keyframes heartGlow {
+    0%,100% { transform: scale(1);   filter: drop-shadow(0 0 8px #e74c3c) drop-shadow(0 0 20px #e74c3caa); }
+    14%      { transform: scale(1.2); filter: drop-shadow(0 0 16px #e74c3c) drop-shadow(0 0 40px #e74c3ccc) drop-shadow(0 0 60px #e74c3c88); }
+    28%      { transform: scale(1);   filter: drop-shadow(0 0 8px #e74c3c) drop-shadow(0 0 20px #e74c3caa); }
+    42%      { transform: scale(1.12);filter: drop-shadow(0 0 12px #e74c3c) drop-shadow(0 0 30px #e74c3cbb); }
+  }
+
+  /* ripple rings around heart */
+  .heart-rings {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px; height: 80px;
+    margin: 0.3rem 0;
+  }
+  .heart-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid #e74c3c;
+    animation: ringOut 1.6s ease-out infinite;
+  }
+  .heart-ring:nth-child(1) { width: 60px; height: 60px; animation-delay: 0s; }
+  .heart-ring:nth-child(2) { width: 72px; height: 72px; animation-delay: 0.4s; }
+  .heart-ring:nth-child(3) { width: 80px; height: 80px; animation-delay: 0.8s; }
+  @keyframes ringOut {
+    0%   { transform: scale(0.6); opacity: 0.8; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  .letter-closing {
+    text-align: right;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--ink);
+    opacity: 0;
+    transition: opacity 0.7s 1.6s ease;
+  }
+  .letter-overlay.visible .letter-closing { opacity: 1; }
+
+  .letter-closing .sign-off { font-size: 0.9rem; color: var(--ink-soft); margin-bottom: 0.3rem; }
+  .letter-closing .signature {
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--rose), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* bottom ornament */
+  .letter-footer {
+    text-align: center;
+    margin-top: 1.2rem;
+    color: var(--gold);
+    font-size: 0.8rem;
+    letter-spacing: 0.25em;
+    opacity: 0;
+    transition: opacity 0.7s 1.8s ease;
+  }
+  .letter-overlay.visible .letter-footer { opacity: 0.7; }
+
+  /* ── Title above envelope ── */
+  .scene-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #d4a017aa;
+    margin-bottom: -0.5rem;
+    animation: titleFade 3s ease-in-out infinite;
+  }
+  @keyframes titleFade {
+    0%,100% { opacity: 0.5; }
+    50%      { opacity: 1; }
+  }
+
+  /* ── Heart particles canvas inside letter ── */
+  #letter-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+
+  .mini-heart {
+    position: absolute;
+    font-size: var(--sz);
+    animation: miniFloat var(--dur) var(--delay) infinite ease-in;
+    opacity: 0;
+  }
+  @keyframes miniFloat {
+    0%   { transform: translate(0,0) rotate(0deg); opacity: 0; }
+    15%  { opacity: 0.7; }
+    85%  { opacity: 0.4; }
+    100% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<div class="scene">
+  <div class="scene-title">— A message for you —</div>
+
+  <div class="envelope-wrap" id="envelopeWrap">
+    <div class="envelope">
+      <div class="env-left"></div>
+      <div class="env-right"></div>
+      <div class="env-bottom"></div>
+      <div class="env-flap"></div>
+      <div class="seal">💌</div>
+    </div>
+  </div>
+
+  <button class="open-btn" id="openBtn">✦ Open the Letter ✦</button>
+</div>
+
+<!-- Letter overlay -->
+<div class="letter-overlay" id="letterOverlay">
+  <div class="letter" id="letter">
+    <button class="letter-close" id="closeBtn" title="Close">✕</button>
+
+    <div id="letter-particles"></div>
+
+    <div class="letter-ornament">
+      <div class="ornament-line">✦ &nbsp; With All My Heart &nbsp; ✦</div>
+    </div>
+
+    <div class="letter-date">Written under a sky full of stars…</div>
+
+    <div class="letter-salutation">My Dearest,</div>
+
+    <div class="letter-body">
+  <p>Sometimes I just sit and think about how lucky I am to have this small little family of ours. So I thought I’d write these feelings here instead of keeping them only in my heart.</p>
+
+  <p>Mom and Dad, thank you for all the love, care, and little things you do for us every single day. Home feels warm and happy because of both of you.</p>
+
+  <p>Guru, you are more than just my brother — you are my best friend, my partner in all the fun, fights, and memories. Life would honestly feel incomplete without you around.</p>
+
+  <p>And no matter how much we grow or change, one thing I know for sure is — I’ll always love this beautiful family of ours forever.</p>
+</div>
+
+    <div class="love-declaration">
+      <span class="love-text">I Love You</span>
+      <br>
+      <div class="heart-rings">
+        <div class="heart-ring"></div>
+        <div class="heart-ring"></div>
+        <div class="heart-ring"></div>
+        <span class="glow-heart">❤️</span>
+      </div>
+    </div>
+
+    <div class="letter-closing">
+      <div class="sign-off">Forever yours,</div>
+      <div class="signature">yuva ♥</div>
+    </div>
+
+    <div class="letter-footer">— · — · ✦ · — · —</div>
+  </div>
+</div>
+
+<script>
+// ── Starfield ──
+const canvas = document.getElementById('stars-canvas');
+const ctx = canvas.getContext('2d');
+let stars = [];
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+for (let i = 0; i < 180; i++) {
+  stars.push({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    r: Math.random() * 1.5 + 0.3,
+    a: Math.random(),
+    speed: Math.random() * 0.008 + 0.003,
+    phase: Math.random() * Math.PI * 2
+  });
+}
+
+function drawStars(t) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  stars.forEach(s => {
+    const alpha = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,240,200,${alpha})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(tt => drawStars(tt / 1000));
+}
+drawStars(0);
+
+// ── Floating particles (body) ──
+const colors = ['#e74c3c','#c0392b','#d4a017','#f0c040','#f9d0cc','#b8860b'];
+for (let i = 0; i < 22; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  const size = 4 + Math.random() * 7;
+  const col = colors[Math.floor(Math.random() * colors.length)];
+  p.style.cssText = `
+    width:${size}px; height:${size}px;
+    background:${col};
+    left:${Math.random() * 100}%;
+    top:${Math.random() * 100}%;
+    --dur:${4 + Math.random() * 5}s;
+    --delay:${Math.random() * 5}s;
+    --tx:${-60 + Math.random() * 120}px;
+    --ty:${-100 - Math.random() * 150}px;
+    --rot:${Math.random() * 360}deg;
+    --op:${0.3 + Math.random() * 0.5};
+    box-shadow: 0 0 ${size * 2}px ${col}88;
+  `;
+  document.body.appendChild(p);
+}
+
+// ── Open / close ──
+const openBtn = document.getElementById('openBtn');
+const overlay = document.getElementById('letterOverlay');
+const closeBtn = document.getElementById('closeBtn');
+const envWrap = document.getElementById('envelopeWrap');
+const letterParticles = document.getElementById('letter-particles');
+
+function spawnLetterHearts() {
+  letterParticles.innerHTML = '';
+  const hearts = ['❤','♥','💕','✦','·'];
+  for (let i = 0; i < 18; i++) {
+    const h = document.createElement('div');
+    h.className = 'mini-heart';
+    const sz = 10 + Math.random() * 18;
+    h.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+    const color = ['#e74c3c','#c0392b','#d4a017','#f0a0a0'][Math.floor(Math.random()*4)];
+    h.style.cssText = `
+      left:${Math.random()*90}%;
+      bottom:${Math.random()*30}%;
+      --sz:${sz}px;
+      --dur:${3+Math.random()*4}s;
+      --delay:${Math.random()*4}s;
+      --tx:${-40+Math.random()*80}px;
+      --ty:${-80-Math.random()*120}px;
+      --rot:${-30+Math.random()*60}deg;
+      color:${color};
+    `;
+    letterParticles.appendChild(h);
+  }
+}
+
+openBtn.addEventListener('click', () => {
+  envWrap.classList.add('opened');
+  setTimeout(() => {
+    overlay.classList.add('visible');
+    spawnLetterHearts();
+  }, 500);
+});
+
+function closeLetter() {
+  overlay.classList.remove('visible');
+  setTimeout(() => { envWrap.classList.remove('opened'); }, 400);
+}
+
+closeBtn.addEventListener('click', closeLetter);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeLetter(); });
+</script>
+</body>
+</html>
